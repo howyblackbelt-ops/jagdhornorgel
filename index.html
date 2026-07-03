@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Jagdhornorgel PWA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- PWA Meta -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2c3e50">
+
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      margin-top: 40px;
+      background: #f4f4f4;
+    }
+
+    button {
+      font-size: 20px;
+      padding: 20px;
+      margin: 10px;
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      border: none;
+      background: #2c3e50;
+      color: white;
+    }
+
+    #display {
+      margin-top: 30px;
+      font-size: 22px;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      display: inline-block;
+      min-width: 280px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🎺 Jagdhorn PWA</h1>
+
+<div>
+  <button onclick="playTone(1)">1</button>
+  <button onclick="playTone(2)">2</button>
+  <button onclick="playTone(3)">3</button>
+  <button onclick="playTone(4)">4</button>
+  <button onclick="playTone(5)">5</button>
+  <button onclick="playTone(6)">6</button>
+</div>
+
+<div id="display">Bereit</div>
+
+<script>
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+// 🎼 Naturtöne
+const tones = {
+  1: { freq: 261.63, note: "C" },
+  2: { freq: 392.00, note: "G" },
+  3: { freq: 523.25, note: "C'" },
+  4: { freq: 659.25, note: "E'" },
+  5: { freq: 783.99, note: "G'" },
+  6: { freq: 880.00, note: "A'" }
+};
+
+function playTone(num) {
+  const tone = tones[num];
+
+  const gain = audioCtx.createGain();
+  gain.connect(audioCtx.destination);
+
+  const harmonics = [
+    { m: 1, g: 1.0 },
+    { m: 2, g: 0.6 },
+    { m: 3, g: 0.3 },
+    { m: 4, g: 0.2 }
+  ];
+
+  harmonics.forEach(h => {
+    const osc = audioCtx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = tone.freq * h.m;
+
+    const g = audioCtx.createGain();
+    g.gain.value = h.g;
+
+    osc.connect(g);
+    g.connect(gain);
+
+    osc.start();
+    osc.stop(audioCtx.currentTime + 1.5);
+  });
+
+  const now = audioCtx.currentTime;
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(1, now + 0.05);
+  gain.gain.exponentialRampToValueAtTime(0.6, now + 0.3);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
+
+  document.getElementById("display").innerText =
+    `Taste ${num} → ${tone.note}`;
+}
+
+// 🔥 Service Worker registrieren
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+</script>
+
+</body>
+</html>
